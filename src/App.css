@@ -36,3 +36,25 @@
     transform: rotate(360deg);
   }
 }
+
+.thumbnail-container {
+  display: flex;
+  
+}
+
+.thumbnail {
+  cursor: pointer;
+  width: 7vw;
+  height: 7vw;
+  border: 1px solid transparent;
+}
+
+.thumbnail.selected {
+  background-color: rgba(253, 255, 147, 0.249);
+  border-color: black;
+}
+
+select {
+  display: none;
+}
+
