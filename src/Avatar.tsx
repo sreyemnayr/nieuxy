@@ -35,10 +35,10 @@ const getIdx = (fn: string) => {
         return 0;
     }
     if(fn.includes('crown')) {
-        return 1;
+        return 2;
     }
     if(fn.includes('face')) {
-        return 2;
+        return 1;
     }
     if(fn.includes('bust')) {
         return 3;
