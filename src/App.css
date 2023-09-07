@@ -7,6 +7,10 @@
   pointer-events: none;
 }
 
+body {
+  background-color:#282c34;
+}
+
 @media (prefers-reduced-motion: no-preference) {
   .App-logo {
     animation: App-logo-spin infinite 20s linear;
@@ -42,12 +46,6 @@
   
 }
 
-.thumbnail {
-  cursor: pointer;
-  width: 7vw;
-  height: 7vw;
-  border: 1px solid transparent;
-}
 
 .thumbnail.selected {
   background-color: rgba(253, 255, 147, 0.249);

@@ -1,34 +1,19 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './App.css';
 
+
 interface Option {
     name: string;
     thumbnail: string;
+    folder: string;
+    filename: string;
+    layers: string[];
 }
 
-const crownOptions: Option[] = [
-    { name: 'Crown 1', thumbnail: '/avatars/crown1.png' },
-    { name: 'Crown 2', thumbnail: '/avatars/crown2.png' },
-    { name: 'Crown 3', thumbnail: '/avatars/crown3.png' },
-];
+interface SelectedOptions {
+    [key: string]: Option;
+}
 
-const faceOptions: Option[] = [
-    { name: 'Face 1', thumbnail: '/avatars/face1.png' },
-    { name: 'Face 2', thumbnail: '/avatars/face2.png' },
-    { name: 'Face 3', thumbnail: '/avatars/face3.png' },
-];
-
-const bustOptions: Option[] = [
-    { name: 'Bust 1', thumbnail: '/avatars/bust1.png' },
-    { name: 'Bust 2', thumbnail: '/avatars/bust2.png' },
-    { name: 'Bust 3', thumbnail: '/avatars/bust3.png' },
-];
-
-const neckOptions: Option[] = [
-    { name: 'Neck 1', thumbnail: '/avatars/neck1.png' },
-    { name: 'Neck 2', thumbnail: '/avatars/neck2.png' },
-    { name: 'Neck 3', thumbnail: '/avatars/neck3.png' },
-];
 
 const getIdx = (fn: string) => {
     if(fn.includes('body')) {
@@ -50,46 +35,75 @@ const getIdx = (fn: string) => {
 }
 
 export const Avatar: React.FC = () => {
-    const [selectedBody, setSelectedBody] = useState('');
-    const [selectedCrown, setSelectedCrown] = useState('');
-    const [selectedFace, setSelectedFace] = useState('');
-    const [selectedBust, setSelectedBust] = useState('');
-    const [selectedNeck, setSelectedNeck] = useState('');
+    const [crownOptions, setCrownOptions] = useState<Option[]>([]);
+    const [faceOptions, setFaceOptions] = useState<Option[]>([]);
+    const [bustOptions, setBustOptions] = useState<Option[]>([]);
+    const [neckOptions, setNeckOptions] = useState<Option[]>([]);
+    const [backgroundOptions, setBackgroundOptions] = useState<Option[]>([]);
+    const [extraOptions, setExtraOptions] = useState<Option[]>([]);
+
+    const [selectedOptions, setSelectedOptions] = useState<SelectedOptions>({} as SelectedOptions)
+
+    const [selectedBody, setSelectedBody] = useState<Option>();
+    const [selectedCrown, setSelectedCrown] = useState<Option>();
+    const [selectedFace, setSelectedFace] = useState<Option>();
+    const [selectedBust, setSelectedBust] = useState<Option>();
+    const [selectedNeck, setSelectedNeck] = useState<Option>();
+    const [selectedBackground, setSelectedBackground] = useState<Option>();
+    const [selectedExtra, setSelectedExtra] = useState<Option>();
+
+    const [tab, setTab] = useState<string>("Neck");
+
+    const [selectedLayers, setSelectedLayers] = useState<Option[]>([]);
+
     const [images, setImages] = useState<Array<string | CanvasImageSource>>(['','','','','']);
-    const [context, setContext] = useState<CanvasRenderingContext2D | null | undefined>();
+    const [context, setContext] = useState<CanvasRenderingContext2D | null | undefined>(undefined);
+
+    const [data, setData] = useState<any>({});
     
 
     const canvasRef = useRef<HTMLCanvasElement>(null);
 
     useEffect(()=>{
+        fetch("https://bafkreihplfy3cndieha7lqh2tirqaagwzj3brs3ip6bmaokw3loed26jlm.ipfs.nftstorage.link/").then((res)=>res.json()).then((res)=>{
+            setData(res);
+
+        });
         const rand =  Math.floor(Math.random() * 3) + 1;
-        setSelectedBody(`/avatars/body${rand}.png`);
+        
     },[])
 
     useEffect(() => {
-        const canvas = canvasRef.current;
+        Object.keys(data).forEach((key) => {
+            let randomElement = data[key][Math.floor(Math.random()*data[key].length)];
+            setSelectedOptions((selectedOptions: SelectedOptions)=>({...selectedOptions, [key]: randomElement}))
+        });
+    }, [JSON.stringify(data)])
 
-        setContext(canvas?.getContext('2d'));
-        console.log(selectedBody, selectedCrown, selectedFace, selectedBust, selectedNeck)
+    useEffect(()=>{
+        const canvas = canvasRef.current;
+        if(!context && canvas){
+            setContext(canvas?.getContext('2d'));
+        }
+        
         if (context) {
             const w = canvas?.width || 600;
             const h = canvas?.height || 600;
+
+            let layers = Object.values(selectedOptions).map((option: Option)=>{
+                return option.layers;
+            }).flat().toSorted();
             
+            console.log(layers);
 
-            // Draw the selected avatar parts in order
-            if (selectedBody) drawImageOnCanvas(context, selectedBody, 0, 0, w, h);
-            if (selectedCrown) drawImageOnCanvas(context, selectedCrown, 0, 0, w, h);
-            if (selectedFace) drawImageOnCanvas(context, selectedFace, 0, 0, w, h);
-            if (selectedBust) drawImageOnCanvas(context, selectedBust, 0, 0, w, h);
-            if (selectedNeck) drawImageOnCanvas(context, selectedNeck, 0, 0, w, h);
+            let layer_number = 0;
+            for(let layer of layers){
+                drawImageOnCanvas(context!, layer, 0, 0, w, h, layer_number);
+                layer_number++;
+            }
         }
-    }, [selectedBody, selectedCrown, selectedFace, selectedBust, selectedNeck]);
 
-    useEffect(()=>{
-        console.log(images)
-        
-
-    }, [images, `${images}`])
+    }, [JSON.stringify(selectedOptions), context])
 
     const drawImageOnCanvas = (
         context: CanvasRenderingContext2D,
@@ -97,7 +111,8 @@ export const Avatar: React.FC = () => {
         x: number,
         y: number,
         w: number,
-        h: number
+        h: number,
+        layer_number: number = 0
     ) => {
         
         const image = new Image();
@@ -107,12 +122,18 @@ export const Avatar: React.FC = () => {
         image.onload = () => {
             console.log(imageName, "loaded")
             setImages((imgs)=>{
-                imgs[getIdx(imageName)] = image;
+                imgs[layer_number] = image;
                 const canvas = canvasRef.current;
                 context?.clearRect(0, 0, canvas?.width || 600, canvas?.height || 600);
                 for (let im of imgs){
                     if(typeof(im) != "string" && context){
+                        try {
                         context.drawImage(im, 0, 0, canvas?.width || 600, canvas?.height || 600);
+                        } catch (e) {
+                            console.log(e);
+                            console.log(im);
+                            console.log(typeof(im));
+                        }
                     }
                 }
 
@@ -123,121 +144,96 @@ export const Avatar: React.FC = () => {
         
     };
 
-    const handleCrownChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-        setSelectedCrown(event.target.value);
-    };
-
-    const handleFaceChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-        setSelectedFace(event.target.value);
-    };
-
-    const handleBustChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-        setSelectedBust(event.target.value);
-    };
-
-    const handleNeckChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-        setSelectedNeck(event.target.value);
-    };
 
     return (
         <div>
             <div style={{ display: "flex", flexDirection: "column", width: "100%" }}>
                 <div>
 
-                    <canvas ref={canvasRef} width={600} height={600} style={{ width: '80vh', maxWidth: '90vw', height: '80vh', maxHeight: '90vw' }} />
+                    <canvas ref={canvasRef} width={600} height={600} style={{ width: '70vh', maxWidth: '90vw', height: '70vh', maxHeight: '90vw' }} />
                 </div>
-                <div style={{ display: "flex", flexDirection: "row", justifyContent: "space-around" }} >
-                    <div>
-                        <label htmlFor="crown-select">Crown</label>
-                        <select id="crown-select" value={selectedCrown} onChange={handleCrownChange}>
-                            <option value="">None</option>
-                            {crownOptions.map((option) => (
-                                <option key={option.name} value={option.thumbnail}>
-                                    {option.thumbnail}
-                                </option>
-                            ))}
-                        </select>
-                        <div className="thumbnail-container">
-                            {crownOptions.map((option) => (
-                                <img
-                                    key={option.name}
-                                    src={option.thumbnail}
-                                    alt={option.name}
-                                    className={`thumbnail ${selectedCrown === option.thumbnail ? 'selected' : ''}`}
-                                    onClick={() => setSelectedCrown(option.thumbnail)}
-                                />
-                            ))}
-                        </div>
+                <div style={{
+                    display: "flex", flexDirection: "row", width: "100%", justifyContent: "space-around", alignItems: "center", flexWrap: "wrap"
+                }}>
+                    <div style={{display: 'flex', flexDirection: 'row', flexWrap: "wrap"}}>
+                    {Object.keys(data).map((key, i) => (
+                        <div key={`tab_${key}_${i}`}
+                        style={{
+                            display: 'flex', flexDirection: 'column', alignSelf: 'baseline', border: "1px solid black",
+                            borderRadius: '10%',
+                            backgroundColor: tab === key ? 'lightblue' : 'white',
+                            margin: '2px',
+                            padding: '5px',
+                            height: 'max-content',
+                            alignItems: 'center',
+                            
+                            }}>
+                        <img key={`tabselect_${key}_${i}`} onClick={() => setTab(key)} src={selectedOptions?.[key]?.thumbnail}
+                            style={{
+                                width: "fit-content",
+                                height: "fit-content",
+                                maxWidth: "50px",
+                                maxHeight: "50px",
+                                
+                                cursor: "pointer",
+                                margin: "5px"
+                            }}
+                         />
+                         <span style={{color: '0e0e0e', fontSize: '0.75em'}}>{key}</span>
+                         </div>
+
+                    ))}
                     </div>
-                    <div>
-                        <label htmlFor="face-select">Face</label>
-                        <select id="face-select" value={selectedFace} onChange={handleFaceChange}>
-                            <option value="">None</option>
-                            {faceOptions.map((option) => (
-                                <option key={option.name} value={option.thumbnail}>
-                                    {option.thumbnail}
-                                </option>
-                            ))}
-                        </select>
-                        <div className="thumbnail-container">
-                            {faceOptions.map((option) => (
-                                <img
-                                    key={option.name}
-                                    src={option.thumbnail}
-                                    alt={option.name}
-                                    className={`thumbnail ${selectedFace === option.thumbnail ? 'selected' : ''}`}
-                                    onClick={() => setSelectedFace(option.thumbnail)}
-                                />
-                            ))}
-                        </div>
+                <div style={{
+                        
+                        maxWidth: '60vw',
+                        overflowX: 'scroll',
+                        overflowY: 'hidden',
+                        width: '60vw',
+                        height: '200px',
+                    }}>
+                {Object.keys(data).map((key, i) => (
+                    <div key={`${key}_${i}`} className="thumbnail-container" style={{
+                        display: tab === key ? 'flex' : 'none',
+                        width: 'fit-content',
+                        scrollSnapType: 'x mandatory',
+                        scrollBehavior: 'smooth',
+                        overscrollBehaviorX: 'contain',
+                        
+                    }}>
+                        {data[key].map((option: Option, i: number) => (
+                            <div key={`${key}_${i}`} style={{
+                                alignSelf: 'center',
+                                scrollSnapStop: 'always',
+                                scrollSnapAlign: 'center',
+                                }}>
+                            <img
+                                
+                                src={option?.thumbnail}
+                                alt={option?.name}
+                                className={`thumbnail ${selectedOptions[key]?.thumbnail === option?.thumbnail ? 'selected' : ''}`}
+                                onClick={() => setSelectedOptions({ ...selectedOptions, [key]: option})}
+
+                                style={{
+                                    width: "fit-content",
+                                    height: "fit-content",
+                                    maxWidth: "150px",
+                                    maxHeight: "150px",
+                                    border: "1px solid black",
+                                    cursor: "pointer",
+                                    margin: "5px"
+                                }}
+                            />
+                            <span style={{color: '#fffefe', fontSize: '0.75em'}}>{option.name}</span>
+                            </div>
+                        ))}
                     </div>
-                    <div>
-                        <label htmlFor="bust-select">Bust</label>
-                        <select id="bust-select" value={selectedBust} onChange={handleBustChange}>
-                            <option value="">None</option>
-                            {bustOptions.map((option) => (
-                                <option key={option.name} value={option.thumbnail}>
-                                    {option.thumbnail}
-                                </option>
-                            ))}
-                        </select>
-                        <div className="thumbnail-container">
-                            {bustOptions.map((option) => (
-                                <img
-                                    key={option.name}
-                                    src={option.thumbnail}
-                                    alt={option.name}
-                                    className={`thumbnail ${selectedBust === option.thumbnail ? 'selected' : ''}`}
-                                    onClick={() => setSelectedBust(option.thumbnail)}
-                                />
-                            ))}
-                        </div>
-                    </div>
-                    <div>
-                        <label htmlFor="neck-select">Neck</label>
-                        <select id="neck-select" value={selectedNeck} onChange={handleNeckChange}>
-                            <option value="">None</option>
-                            {neckOptions.map((option) => (
-                                <option key={option.name} value={option.thumbnail}>
-                                    {option.thumbnail}
-                                </option>
-                            ))}
-                        </select>
-                        <div className="thumbnail-container">
-                            {neckOptions.map((option) => (
-                                <img
-                                    key={option.name}
-                                    src={option.thumbnail}
-                                    alt={option.name}
-                                    className={`thumbnail ${selectedNeck === option.thumbnail ? 'selected' : ''}`}
-                                    onClick={() => setSelectedNeck(option.thumbnail)}
-                                />
-                            ))}
-                        </div>
-                    </div>
+
+                ))}
                 </div>
+                
 
-
+            </div>
             </div>
         </div>
     );
