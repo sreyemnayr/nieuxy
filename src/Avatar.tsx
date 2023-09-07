@@ -192,8 +192,8 @@ export const Avatar: React.FC = () => {
                         width: '60vw',
                         height: '200px',
                     }}>
-                {Object.keys(data).map((key, i) => (
-                    <div key={`${key}_${i}`} className="thumbnail-container" style={{
+                {Object.keys(data).filter((key)=>key==tab).map((key, i) => (
+                    <div key={`thumbs_${key}_${i}`} className="thumbnail-container" style={{
                         display: tab === key ? 'flex' : 'none',
                         width: 'fit-content',
                         scrollSnapType: 'x mandatory',
