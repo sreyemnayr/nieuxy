@@ -35,26 +35,24 @@ const getIdx = (fn: string) => {
 }
 
 export const Avatar: React.FC = () => {
-    const [crownOptions, setCrownOptions] = useState<Option[]>([]);
-    const [faceOptions, setFaceOptions] = useState<Option[]>([]);
-    const [bustOptions, setBustOptions] = useState<Option[]>([]);
-    const [neckOptions, setNeckOptions] = useState<Option[]>([]);
-    const [backgroundOptions, setBackgroundOptions] = useState<Option[]>([]);
-    const [extraOptions, setExtraOptions] = useState<Option[]>([]);
+
+    async function copyTextToClipboard(text: string) {
+        if ('clipboard' in navigator) {
+          return await navigator.clipboard.writeText(text);
+        } else {
+          return document.execCommand('copy', true, text);
+        }
+      }
 
     const [selectedOptions, setSelectedOptions] = useState<SelectedOptions>({} as SelectedOptions)
 
-    const [selectedBody, setSelectedBody] = useState<Option>();
-    const [selectedCrown, setSelectedCrown] = useState<Option>();
-    const [selectedFace, setSelectedFace] = useState<Option>();
-    const [selectedBust, setSelectedBust] = useState<Option>();
-    const [selectedNeck, setSelectedNeck] = useState<Option>();
-    const [selectedBackground, setSelectedBackground] = useState<Option>();
-    const [selectedExtra, setSelectedExtra] = useState<Option>();
+    const [output, setOutput] = useState("");
 
     const [tab, setTab] = useState<string>("Neck");
 
     const [selectedLayers, setSelectedLayers] = useState<Option[]>([]);
+
+    const [copied, setCopied] = useState(false);
 
     const [images, setImages] = useState<Array<string | CanvasImageSource>>(['','','','','']);
     const [context, setContext] = useState<CanvasRenderingContext2D | null | undefined>(undefined);
@@ -76,9 +74,18 @@ export const Avatar: React.FC = () => {
     useEffect(() => {
         Object.keys(data).forEach((key) => {
             let randomElement = data[key][Math.floor(Math.random()*data[key].length)];
-            setSelectedOptions((selectedOptions: SelectedOptions)=>({...selectedOptions, [key]: randomElement}))
+            if(!key.includes("Extra") && !key.includes("Neck")){
+                setSelectedOptions((selectedOptions: SelectedOptions)=>({...selectedOptions, [key]: randomElement}))
+            }
+            
         });
     }, [JSON.stringify(data)])
+
+    useEffect(()=> {
+        setTimeout(()=>{
+            setCopied(false);
+        }, 5000);
+    }, [copied])
 
     useEffect(()=>{
         const canvas = canvasRef.current;
@@ -95,6 +102,12 @@ export const Avatar: React.FC = () => {
             }).flat().toSorted();
             
             console.log(layers);
+            const _output = Object.fromEntries(layers.filter((layer: string)=>!layer.includes("Empty")&&!layer.includes("_6_Crown")).map((layer: string)=>{
+                let split_layer = layer.split("/");
+                return [layer.split("/")[split_layer.length-2], layer.split("/")[split_layer.length-1]];
+                
+            }));
+            setOutput(JSON.stringify(_output))
 
             let layer_number = 0;
             for(let layer of layers){
@@ -117,10 +130,10 @@ export const Avatar: React.FC = () => {
         
         const image = new Image();
         image.src = imageName;
-        console.log(imageName);
+        // console.log(imageName);
         // image.src = `/avatars/${imageName}.png`; // Adjust the path as per your image location
         image.onload = () => {
-            console.log(imageName, "loaded")
+            // console.log(imageName, "loaded")
             setImages((imgs)=>{
                 imgs[layer_number] = image;
                 const canvas = canvasRef.current;
@@ -189,7 +202,7 @@ export const Avatar: React.FC = () => {
                         maxWidth: '60vw',
                         overflowX: 'scroll',
                         overflowY: 'hidden',
-                        width: '60vw',
+                        width: '50vw',
                         height: '200px',
                     }}>
                 {Object.keys(data).filter((key)=>key==tab).map((key, i) => (
@@ -231,9 +244,20 @@ export const Avatar: React.FC = () => {
 
                 ))}
                 </div>
-                
+                <div style={{width: '10vw', lineHeight:'0.6em'}}>
+                    <span style={{color: '#fffefe', fontSize: '0.65em'}}>When you&apos;re happy with your Nieuxy, copy the text below and email it to Lindsey along with your member number:</span>
+                    <span style={{display: copied ? 'block' : 'none', color: '#00eeff', fontSize: '0.65em', marginTop:'0.4em'}}>Copied!</span>
+                    <textarea spellCheck={false} style={{width: '100%', fontSize: '0.45em', marginTop:'0.4em'}} value={output} onClick={(e)=>{
+                        (e.target as HTMLTextAreaElement).select();
+                        copyTextToClipboard(output);
+                        setCopied(true);
+                    }} />
+                    
+                </div>
 
             </div>
+            
+            
             </div>
         </div>
     );
