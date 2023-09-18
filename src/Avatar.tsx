@@ -170,7 +170,7 @@ export const Avatar: React.FC = () => {
                 }}>
                     <div style={{display: 'flex', flexDirection: 'row', flexWrap: "wrap"}}>
                     {Object.keys(data).map((key, i) => (
-                        <div key={`tab_${key}_${i}`}
+                        <div key={`tab_${key}_${i}`} onClick={() => setTab(key)}
                         style={{
                             display: 'flex', flexDirection: 'column', alignSelf: 'baseline', border: "1px solid black",
                             borderRadius: '10%',
@@ -181,7 +181,7 @@ export const Avatar: React.FC = () => {
                             alignItems: 'center',
                             
                             }}>
-                        <img key={`tabselect_${key}_${i}`} onClick={() => setTab(key)} src={selectedOptions?.[key]?.thumbnail}
+                        <img key={`tabselect_${key}_${i}`}  src={selectedOptions?.[key]?.thumbnail}
                             style={{
                                 width: "fit-content",
                                 height: "fit-content",
